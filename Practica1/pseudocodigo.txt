@@ -1,0 +1,63 @@
+  funcion es_afne(automata):
+    Para cada estado en el automata:
+      Para cada transicion en las transiciones del estado:
+        Si el simbolo de entrada de la transicion es epsilon:
+            Devolver true
+    Para cada estado en el automata:
+      Para cada transicion en las transiciones del estado:
+        Si el simbolo de entrada de la transicion no es epsilon:
+          Si el estado de destino tiene epsilon-transiciones:
+              Devolver true
+    Devolver false
+
+    funcion es_afn(atomata):
+      Para cada estado en el automata:
+        Para cada transicion en las transiciones del estado:
+          Si hay algun simbolo de entrada duplicado en las transiciones del estado:
+            Devolver true
+      Devolver false
+
+    funcion es_afd(automada):
+      simbolos_entrada_inicial = lista de sumbolos de entrada de las transiciones del estado inicial del automata
+      estados_visitados = [estado inicial del automata]
+      Para cada estado en estados_visitados:
+        transiciones_estado = lista de transiciones del estado en el automata
+        simbolos_entrada = lista de simbolos de entrada en las transiciones_estado
+        Si hay algun simbolo deentrada dupicado en simbolos_entrada:
+          Devolver false
+        Para cada simbolo en simbolos_entrada:
+          destino = estado de destino de la transicion correspondiente al simbolo
+          SI destino no es un estado del automata:
+            Devolver true
+          Si destino no esta en estados_visitados:
+            añadir destino a estados_visitados
+      Devolver true
+ 
+ 
+ funcion equivalentes(automata1, automata2):
+        estados1 = estados del automata1
+        estados_finales1 = estados finales del automata1
+        estados2 = estados del automata 2
+        estados_finales2 = estados finales del automata2
+        alfabeto = alfabeto del automata1 y del automata2
+        estados_visitados = conjunto vacio
+        cola = [(estado_inicial1,estado_inicial2)]
+        Mientras cola no este vacia:
+          (estado_actual1, estado_actual2) = extraer el primer elemento de la cola 
+          Si (estado_actual1, estado_actual2) esta en estados_visitados:
+            Continuar con el siguiente elemento de la cola
+          Si estado_actual1 es final y estado_actual2 no es final, o viceversa:
+            Devolver false
+          Si no:
+            Añadir (estado_actual1, estado_actual2) a estados_visitados
+            Para cada simbolo en el alfabeto:
+              nuevo_estado1 = estado alcanzado desde estado_actual1 con el simbolo (conjunto de estado)
+              nuevo_estado2 = estado alcanzado desde estado_actual2 con el simbolo
+              Añadir(nuevo_estado1, nuevo_estado2) a la cola
+        Devolver true
+
+        - Acepta true si ambos automatas aceptan el mismo lenguaje, false en caso contrario. La idea es utilizar una busqueda en anchuar para simular los dos automatas en àralelo, leyendo una misma entrada y comparar
+        si los dos automatas llegan al mismo estado final. el algoritmo mantiene una cola de pares de estados visitados y los nuevos estados
+        alcanzados se añaden a la cola para ser procesados posteriormente.
+        si en algun momento se llega a un par de estados donde uno es final y el otro no, los dos automatas no aceptan el mismo
+        lenguaje y se devuelve false. si se llega al final sin encontrarlos, se deuvelve true.
