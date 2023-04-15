@@ -52,6 +52,7 @@ let eq5 = af_of_string "0 01 02 03 014 ; a b; 0; 014; 0 01 a; 0 0 b; 01 01 a; 01
 
 (* EJERCICIO 1 *)
 
+  (* Si tiene epsilon *)
   let es_afne (Af (_,_,_,arcs,_)) =
     let rec loop = function
       Conjunto ((Arco_af(_,_,terminal))::tl) ->
@@ -63,89 +64,129 @@ let eq5 = af_of_string "0 01 02 03 014 ; a b; 0; 014; 0 01 a; 0 0 b; 01 01 a; 01
     in loop arcs
   ;;
 
+  (* Un estado una entrada, varias transiciones *)
   let es_afn (Af (_,_,_,arcs,_)) =
-    let rec loop cc boolean = function
+    let rec loop transicion_v boolean = function
       Conjunto ((Arco_af(s1,_,terminal))::tl) ->
+          (* Epsilon se ignora *)
         if terminal = (Terminal "") then
-          loop cc boolean (Conjunto(tl))
-        else if pertenece (s1,terminal) cc then
-          loop (agregar (s1,terminal) cc) true (Conjunto(tl))
+          loop transicion_v boolean (Conjunto(tl))
+          (* Transicion visitada *)
+        else if pertenece (s1,terminal) transicion_v then
+          loop (agregar (s1,terminal) transicion_v) true (Conjunto(tl))
+          (* Agregar a conj visitado *)
         else
-          loop (agregar (s1,terminal) cc) boolean (Conjunto(tl))
+          loop (agregar (s1,terminal) transicion_v) boolean (Conjunto(tl))
       | Conjunto _ -> boolean
     in loop (Conjunto []) false arcs
   ;;
 
-  let tiene_uno (estado,simbolo) transiciones =
-    let rec recorrer acc = function
-      | Conjunto [] -> acc = 1
-      | Conjunto (Arco_af (e,_, s)::tl) when estado=e && simbolo=s && s<>(Terminal "") && s<>(Terminal "epsilon")->
-          (acc > 1) || recorrer (acc+1) (Conjunto tl)
+  (* Contador del par estado-simbolo en transiciones *)
+  let repetido (estado,simbolo) transiciones =
+    let rec contador cont = function
+        (* Comprobación del valor cont *)
+      | Conjunto [] -> cont = 1
+        (* Comprobación estado-simb +1 transicion *)
+      | Conjunto (Arco_af (e,_, s)::tl) when estado=e && simbolo=s && s<>(Terminal "") ->
+          (* True si ya ha aparecido antes *)
+          (cont > 1) || contador (cont+1) (Conjunto tl)
+        (* Transicion actual no es estado, simb seguimos buscando *)
       | Conjunto (Arco_af _::tl) -> 
-          recorrer acc (Conjunto tl)
-    in recorrer 0 transiciones;;
+          contador cont (Conjunto tl)
+    in contador 0 transiciones;;
 
+    (* Estados sin repetir y sin epsilon *)
   let es_afd (Af (estados,simbolos,_,transiciones,_)) =
     let rec recorrer_estados = function
       | Conjunto [] -> true
       | Conjunto ((Estado est)::estado_tl) ->
-        let rec recorrer_simbolos = function
+        let rec verificar_simb = function
           | Conjunto [] -> true
+            (* Comprobacion 1 estado-simb *)
           | Conjunto ((Terminal s)::simbolo_tl) -> 
-              if (tiene_uno (Estado est, Terminal s) transiciones) then
-                recorrer_simbolos (Conjunto simbolo_tl)
+              if (repetido (Estado est, Terminal s) transiciones) then
+                verificar_simb (Conjunto simbolo_tl)
               else
                 false
           | Conjunto ((No_terminal s)::_) -> 
               false
-        in recorrer_simbolos simbolos && recorrer_estados (Conjunto estado_tl)
+          (* Comprobamos simb y simb de sig estados *)
+        in verificar_simb simbolos && recorrer_estados (Conjunto estado_tl)
     in recorrer_estados estados;;
 
   (* EJERCICIO 2 *)
 
+  (* Transicion entre dos estados *)
   let rec transition estado value (Conjunto arcoAf) = match arcoAf with 
       [] -> estado
-    | Arco_af(e,e2,sym)::t -> if e = estado && sym = value then 
-                                if (sym <> Terminal "") && (e = e2) then 
-                                  transition estado value (Conjunto t)
-                                else 
-                                  e2
-                              else transition estado value (Conjunto t)
+    | Arco_af(estado_partida,estado_llegada,simb)::t -> 
+      if estado_partida = estado && simb = value then 
+            (* Transicion epsilon *)
+            if (simb <> Terminal "") && (estado_partida = estado_llegada) then 
+              transition estado value (Conjunto t)
+            (* Transicion encontrada *)
+            else estado_llegada
+      else transition estado value (Conjunto t)
 ;;
 
-
+(* Comprobación de 2 autómatas aceptación mismo lenguaje, aceptan o rechazan las mismas cadenas *)
 let equivalentes (Af(_,simbolos1, inicial1, arcos1, finales1)) (Af(_, simbolos2, inicial2,arcos2, finales2)) =
+  (* Creación alfabeto + epsilon *)
   let alfabeto = agregar (Terminal "") (union simbolos1 simbolos2) in 
-  let rec loop (Conjunto cola) visitados =  match cola with
+  (* Recorremos todos los estados posibles *)
+  let rec loop (Conjunto a_visitar) visitados =  match a_visitar with
       [] -> true
-    | (estadoAct1, estadoAct2)::t ->  if pertenece (estadoAct1, estadoAct2) visitados then 
-                  loop (Conjunto t) visitados
-                else if (pertenece estadoAct1 finales1 && not (pertenece estadoAct2 finales2)) 
-                || (not (pertenece estadoAct1 finales1) && pertenece estadoAct2 finales2) then 
-                  false
-                else
-                  let vistos1 = agregar (estadoAct1, estadoAct2) visitados in 
-                  let rec loopAux (Conjunto alf) vistos= match alf with
-                        [] -> true
-                      | a::l -> let nuevoEtd1 = transition estadoAct1 a arcos1 in 
-                                let nuevoEtd2 =  transition estadoAct2 a arcos2 in
-                                if (not (pertenece (nuevoEtd1, nuevoEtd2) vistos)) then
-                                  if (a<>(Terminal "") && (nuevoEtd1 = estadoAct1 || nuevoEtd2 = estadoAct2)) then 
-                                    loopAux (Conjunto l)  vistos 
-                                  else 
-                                    loop (agregar (nuevoEtd1, nuevoEtd2) (Conjunto cola)) vistos 
-                                else loopAux (Conjunto l)  vistos 
-                  in loopAux alfabeto vistos1
+    | (estadoAct1, estadoAct2)::t ->  
+        (* Si ya visitó el estado actual, se omite *)
+      if pertenece (estadoAct1, estadoAct2) visitados then loop (Conjunto t) visitados
+          (* Si uno de los estados es final y el otro no, no son eq *)
+        else if (pertenece estadoAct1 finales1 && not (pertenece estadoAct2 finales2)) 
+              || (not (pertenece estadoAct1 finales1) && pertenece estadoAct2 finales2) then 
+                false
+        else
+              (* Los añado a visitados *)
+            let vistos1 = agregar (estadoAct1, estadoAct2) visitados in 
+              (* Visitamos simb *)
+            let rec loopAux (Conjunto alf) vistos= match alf with
+              [] -> true
+                (* Generamos los nuevos estados *)
+              | a::l -> let nuevoEtd1 = transition estadoAct1 a arcos1 in 
+                    let nuevoEtd2 =  transition estadoAct2 a arcos2 in
+                    if (not (pertenece (nuevoEtd1, nuevoEtd2) vistos)) then
+                        (* Nuevos estados generados igual a estado actual, se ignora *)
+                      if (a<>(Terminal "") && (nuevoEtd1 = estadoAct1 || nuevoEtd2 = estadoAct2)) then 
+                        loopAux (Conjunto l)  vistos 
+                        (* Si no, lo agregamos a visitar *)
+                      else 
+                        loop (agregar (nuevoEtd1, nuevoEtd2) (Conjunto a_visitar)) vistos 
+                    else loopAux (Conjunto l)  vistos 
+            in loopAux alfabeto vistos1
   in loop (Conjunto [(inicial1,inicial2)])  (Conjunto []) 
 ;;
 
 
   (* EJERCICIO 3 *)
 
+
+let escaner_af cadena (Af (_, _, inicial, _, finales) as a) =
+  let rec aux = function
+       (Conjunto [], _) ->
+          false
+     | (actuales, []) ->
+          not (es_vacio (interseccion actuales finales))
+     | (actuales, simbolo :: t) ->
+          aux ((epsilon_cierre (avanza simbolo actuales a) a), t)
+  in
+     aux ((epsilon_cierre (Conjunto [inicial]) a), cadena)
+  ;;
+
+  (* Cadena de símb aceptada por AFN *)
   let escaner_afn cadena (Auto.Af (_, _, inicial, _, finales) as a) =
       let rec aux = function
+          (* No hay más transiciones a realizar *)
            (Conjunto [], _) ->
               false
+          (* Comprueba que estados actuales sean finales, devuelve true *)
          | (actuales, []) ->
               not (es_vacio (interseccion actuales finales))
          | (actuales, simbolo :: t) ->
@@ -154,48 +195,23 @@ let equivalentes (Af(_,simbolos1, inicial1, arcos1, finales1)) (Af(_, simbolos2,
          aux (Conjunto [inicial], cadena)
       ;;
 
+  (* Implementación más directa, mejor para AFN, peor para otros *)
   (* Ejemplo:
       let a4 = af_of_string "0 1 2 3 4; a b c; 0; 3; 0 1 a; 1 2 b; 2 3 a; 0 2 a; 0 4 b;";;
       let cad1 = Ergo.cadena_of_string "a b a";;
       escaner_afn cad1 a4;; *)
   
-  let string_of_stado s = match s with Estado st -> st;;
-  let string_of_symbol s = match s with Terminal st -> st | No_terminal s -> s;;
-
-  let get_next_state_afd state symbol automata =
-    let arcs = match automata with
-      | Af (_,_,_,t,_) -> t
-    in
-    let rec aux = function
-      | Conjunto [] -> raise Not_found
-      | Conjunto (h::t) ->
-        let i = match h with
-          | Arco_af (inn,_,_) -> inn
-        in
-        let s = match h with
-          | Arco_af (_,_,s) -> s
-        in
-        if i = state && s = symbol then
-          match h with
-            | Arco_af (_,enn,_) -> enn
-        else
-          aux (Conjunto t)
-    in
-    aux arcs
-  ;;  
-
-  let escaner_afd cadena (Af (_, _, inicial, _, finales) as a) =
+  let rec escaner_afd cadena (Af (_, _, inicial, _, finales) as a) =
     let rec aux state = function
+        (* Si está vacía, comprueba que sea estado final *)
       | [] -> not (es_vacio (interseccion (Conjunto [state]) finales))
-      | h::t -> 
-        try 
-         let next_state = get_next_state_afd state h a in 
-           aux next_state t
-        with Failure s  -> false
+      | h::t ->
+        let next_state = transition state h (match a with Af (_,_,_,t,_) -> t) in
+        aux next_state t
     in aux inicial cadena
   ;;
   
   (* Ejemplo:
       let a5 = af_of_string "0 1 2 3 4; a b c; 0; 3; 0 1 a; 1 2 b; 2 3 a; 0 4 b;";;
       let cad2 = cadena_of_string "a b a";;
-      escaner_afn cad2 a5;; *)
+      escaner_afd cad2 a5;; *)
