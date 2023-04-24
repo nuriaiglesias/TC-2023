@@ -108,6 +108,7 @@ let eq5 = af_of_string "0 01 02 03 014 ; a b; 0; 014; 0 01 a; 0 0 b; 01 01 a; 01
                 verificar_simb (Conjunto simbolo_tl)
               else
                 false
+            (* Comprobación no terminales *)
           | Conjunto ((No_terminal s)::_) -> 
               false
           (* Comprobamos simb y simb de sig estados *)
@@ -149,7 +150,7 @@ let equivalentes (Af(_,simbolos1, inicial1, arcos1, finales1)) (Af(_, simbolos2,
               (* Visitamos simb *)
             let rec loopAux (Conjunto alf) vistos= match alf with
               [] -> true
-                (* Generamos los nuevos estados *)
+                (* Generamos los nuevos estados, alcanzados por el estado actual *)
               | a::l -> let nuevoEtd1 = transition estadoAct1 a arcos1 in 
                     let nuevoEtd2 =  transition estadoAct2 a arcos2 in
                     if (not (pertenece (nuevoEtd1, nuevoEtd2) vistos)) then
@@ -198,7 +199,7 @@ let escaner_af cadena (Af (_, _, inicial, _, finales) as a) =
   (* Implementación más directa, mejor para AFN, peor para otros *)
   (* Ejemplo:
       let a4 = af_of_string "0 1 2 3 4; a b c; 0; 3; 0 1 a; 1 2 b; 2 3 a; 0 2 a; 0 4 b;";;
-      let cad1 = Ergo.cadena_of_string "a b a";;
+      let cad1 = cadena_of_string "a b a";;
       escaner_afn cad1 a4;; *)
   
   let rec escaner_afd cadena (Af (_, _, inicial, _, finales) as a) =
