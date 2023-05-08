@@ -52,10 +52,10 @@ let cyk cadena gramatica =
         let alcanzable simb_cad = match simb_cad with
             (* Comprobamos que no terminales pueden alcanzar elementos de cadena*)
           | Terminal terminal ->
-            let no_term = 
+            let alcanzados = 
               (* Filtro y guardo los resultados *)
               List.filter (function Regla_gic(_, [Terminal t]) -> terminal = t | _ -> false) reglas in
-            List.map (fun (Regla_gic(no_term, _)) -> no_term) no_term 
+            List.map (fun (Regla_gic(alcanzados, _)) -> alcanzados) alcanzados 
             (* Simbolo es un no terminal *)
           | _ -> raise (Invalid_argument "La cadena contiene no terminales.")
         in matriz.(0).(columna) <- Conjunto (alcanzable simb_cad)
