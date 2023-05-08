@@ -81,6 +81,9 @@ let eq5 = af_of_string "0 01 02 03 014 ; a b; 0; 014; 0 01 a; 0 0 b; 01 01 a; 01
     in loop (Conjunto []) false arcs
   ;;
 
+  (* es_afn eq2: true
+     es_afn eq3: false *)
+
   (* Contador del par estado-simbolo en transiciones *)
   let repetido (estado,simbolo) transiciones =
     let rec contador cont = function
@@ -88,7 +91,7 @@ let eq5 = af_of_string "0 01 02 03 014 ; a b; 0; 014; 0 01 a; 0 0 b; 01 01 a; 01
       | Conjunto [] -> cont = 1
         (* Comprobación estado-simb +1 transicion *)
       | Conjunto (Arco_af (e,_, s)::tl) when estado=e && simbolo=s && s<>(Terminal "") ->
-          (* True si ya ha aparecido antes *)
+          (* False si ya ha aparecido antes *)
           (cont > 1) || contador (cont+1) (Conjunto tl)
         (* Transicion actual no es estado, simb seguimos buscando *)
       | Conjunto (Arco_af _::tl) -> 
@@ -114,6 +117,9 @@ let eq5 = af_of_string "0 01 02 03 014 ; a b; 0; 014; 0 01 a; 0 0 b; 01 01 a; 01
           (* Comprobamos simb y simb de sig estados *)
         in verificar_simb simbolos && recorrer_estados (Conjunto estado_tl)
     in recorrer_estados estados;;
+
+    (* es_afn eq2: false
+      es_afn eq3: true *)
 
   (* EJERCICIO 2 *)
 
