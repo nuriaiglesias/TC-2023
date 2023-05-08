@@ -81,6 +81,27 @@ let cyk cadena gramatica =
             in matriz.(fila).(columna) <- union (matriz.(fila).(columna)) (Conjunto (List.concat result));
           done
         done
+      done;  (* Recorremos matriz, calculamos valores tabla *)
+      for fila = 1 to long_cadena-1 do
+        for columna = 0 to long_cadena-1-fila do
+          for k = 0 to fila-1 do
+            (* Producto cartesiano de dos celdas anteriores *)
+            let no_term1 = matriz.(k).(columna) in
+            let no_term2 = matriz.(fila-k-1).(columna+k+1) in
+            let no_terms = list_of_conjunto (cartesiano no_term1 no_term2) in
+            let result = 
+              List.map ( fun (no_t1,no_t2) -> 
+                  (* Busca reglas con cuerpo no_t1 y no_t2 y devuelve los no terminales del lado izq *)
+                let alcanzable = function
+                  | (nt1,nt2) ->
+                    let rules = List.filter (function Regla_gic(_, l_no_terms) -> l_no_terms = [nt1;nt2]) reglas in
+                    List.map (fun (Regla_gic(no_t, _)) -> no_t) rules 
+                in alcanzable (no_t1,no_t2)
+              ) no_terms
+              (* Agregamos resultados de alcanzable *)
+            in matriz.(fila).(columna) <- union (matriz.(fila).(columna)) (Conjunto (List.concat result));
+          done
+        done
       done;  
       (* Última comprobación *)
       pertenece (No_terminal "S") matriz.(long_cadena-1).(0)
